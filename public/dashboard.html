@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Dashboard</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f6f8;
+    }
+
+    .dashboard-container {
+      max-width: 800px;
+      margin: 50px auto;
+      background-color: white;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      font-size: 28px;
+      color: #222;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    .messages {
+      max-height: 400px;
+      overflow-y: auto;
+      padding-right: 10px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .message {
+      background: linear-gradient(145deg, #ffffff, #e6e9f0);
+      border-radius: 12px;
+      padding: 20px 24px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      color: #2c3e50;
+      font-size: 16px;
+      border-left: 6px solid #4a90e2;
+      transition: box-shadow 0.3s ease, transform 0.2s ease;
+      word-break: break-word;
+    }
+
+    .message:hover {
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);
+      background: linear-gradient(145deg, #f5f7fb, #dbe3f0);
+    }
+
+    .message-time {
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #1a237e;
+      font-size: 14px;
+      letter-spacing: 0.02em;
+    }
+
+    .message-text {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      white-space: pre-line;
+    }
+
+    button {
+      background-color: #e74c3c;
+      color: white;
+      padding: 12px 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      transition: background-color 0.3s ease, box-shadow 0.2s ease;
+      box-shadow: 0 4px 10px rgba(231, 76, 60, 0.6);
+    }
+
+    button:hover {
+      background-color: #c0392b;
+      box-shadow: 0 6px 14px rgba(192, 57, 43, 0.7);
+    }
+
+    /* New message alert styles */
+    #new-message-alert {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #4CAF50;
+      color: #fff;
+      padding: 14px 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #new-message-alert button {
+      background: #fff;
+      color: #4CAF50;
+      padding: 4px 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: none;
+    }
+
+    #new-message-alert button:hover {
+      background: #e0e0e0;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-container">
+    <h2>Live Messages</h2>
+    <div id="messages" class="messages"></div>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <script>
+    if (localStorage.getItem("isLoggedIn") !== "true") {
+      window.location.href = "login.html";
+    }
+
+    function logout() {
+      localStorage.removeItem("isLoggedIn");
+      window.location.href = "login.html";
+    }
+
+    let previousMessageCount = 0;
+
+    function showNewMessageAlert() {
+      if (document.getElementById("new-message-alert")) return;
+
+      const alertBox = document.createElement("div");
+      alertBox.id = "new-message-alert";
+      alertBox.innerHTML = `
+        <span>📬 رسالة جديدة وصلت</span>
+        <button onclick="document.getElementById('new-message-alert').remove()">X</button>
+      `;
+      document.body.appendChild(alertBox);
+    }
+
+    async function loadMessages() {
+      const res = await fetch("https://bm-dashboard-a0mt.onrender.com/api/messages");
+      const messages = await res.json();
+      const messagesDiv = document.getElementById("messages");
+      messagesDiv.innerHTML = "";
+
+      if (messages.length > previousMessageCount) {
+        showNewMessageAlert();
+      }
+
+      previousMessageCount = messages.length;
+
+      messages.forEach((msg) => {
+        const div = document.createElement("div");
+        div.classList.add("message");
+
+        const timeDiv = document.createElement("div");
+        timeDiv.classList.add("message-time");
+        timeDiv.textContent = `[${msg.time}]`;
+
+        const textDiv = document.createElement("div");
+        textDiv.classList.add("message-text");
+
+        const lines = msg.text.split(/[,;\n]+/).map(line => line.trim()).filter(Boolean);
+        lines.forEach(line => {
+          const lineDiv = document.createElement("div");
+          lineDiv.textContent = line;
+          textDiv.appendChild(lineDiv);
+        });
+
+        div.appendChild(timeDiv);
+        div.appendChild(textDiv);
+        messagesDiv.appendChild(div);
+      });
+    }
+
+    setInterval(loadMessages, 2000);
+    loadMessages();
+  </script>
+  <p id="onlineCount">👥 يتم التحميل...</p>
+<script>
+  function updateOnlineUsers() {
+    fetch('/online-users')
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('onlineCount').textContent =
+          `👥 عدد المستخدمين المتصلين الآن: ${data.online}`;
+      })
+      .catch(() => {
+        document.getElementById('onlineCount').textContent =
+          '📡 تعذر جلب عدد المتصلين';
+      });
+  }
+
+  updateOnlineUsers();
+  setInterval(updateOnlineUsers, 5000);
+</script>
+</body>
+</html>
